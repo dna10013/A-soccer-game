@@ -1,0 +1,47 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local SpawnEvent = ReplicatedStorage:WaitForChild("SpawnEvent")
+local SlotUpdate = ReplicatedStorage:WaitForChild("SlotUpdate")
+
+local occupiedSlots = {}
+local playerSlots = {}
+
+local function clearSlot(player)
+	local userId = player.UserId
+	local slotName = playerSlots[userId]
+
+	if slotName then
+		occupiedSlots[slotName] = nil
+		playerSlots[userId] = nil
+		SlotUpdate:FireAllClients(slotName, nil)
+	end
+end
+
+SpawnEvent.OnServerEvent:Connect(function(player, slotName)
+	if typeof(slotName) ~= "string" then return end
+
+	if playerSlots[player.UserId] then
+		return
+	end
+
+	if occupiedSlots[slotName] then
+		return
+	end
+
+	occupiedSlots[slotName] = player.UserId
+	playerSlots[player.UserId] = slotName
+
+	SlotUpdate:FireAllClients(slotName, player.UserId)
+
+	player.CharacterAdded:Once(function(character)
+		local humanoid = character:WaitForChild("Humanoid", 3)
+		if humanoid then
+			humanoid.Died:Once(function()
+				clearSlot(player)
+			end)
+		end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(clearSlot)
