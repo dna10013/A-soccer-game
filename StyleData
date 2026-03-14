@@ -1,0 +1,33 @@
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+
+local styleStore = DataStoreService:GetDataStore("PlayerStyles_v1")
+
+Players.PlayerAdded:Connect(function(player)
+	local data
+	pcall(function()
+		data = styleStore:GetAsync(player.UserId)
+	end)
+
+	if data then
+		player:SetAttribute("Style", data.Style)
+		player:SetAttribute("KickPowerMult", data.KickPower or 1)
+		player:SetAttribute("SlidePowerMult", data.SlidePower or 1)
+	else
+		player:SetAttribute("Style", "Basic")
+		player:SetAttribute("KickPowerMult", 1)
+		player:SetAttribute("SlidePowerMult", 1)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	local data = {
+		Style = player:GetAttribute("Style"),
+		KickPower = player:GetAttribute("KickPowerMult"),
+		SlidePower = player:GetAttribute("SlidePowerMult")
+	}
+
+	pcall(function()
+		styleStore:SetAsync(player.UserId, data)
+	end)
+end)
