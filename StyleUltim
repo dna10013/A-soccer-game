@@ -1,0 +1,34 @@
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local UltimateEvent = RS:WaitForChild("UseUltimateEvent")
+local Styles = require(RS:WaitForChild("Styles"))
+
+local cooldowns = {}
+
+UltimateEvent.OnServerEvent:Connect(function(player)
+	local styleName = player:GetAttribute("Style")
+	if not styleName then return end
+
+	for _, style in ipairs(Styles) do
+		if style.Name == styleName and style.Ultimate then
+			local now = tick()
+			if cooldowns[player] and now - cooldowns[player] < style.Ultimate.Cooldown then
+				return
+			end
+
+			cooldowns[player] = now
+
+			player:SetAttribute(
+				"KickPowerMult",
+				style.KickPower * style.Ultimate.PowerBoost
+			)
+
+			task.delay(5, function()
+				if player then
+					player:SetAttribute("KickPowerMult", style.KickPower)
+				end
+			end)
+		end
+	end
+end)
