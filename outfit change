@@ -1,0 +1,42 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local event = ReplicatedStorage:WaitForChild("ChangeOutfitEvent")
+
+
+local outfits = {
+	
+	Blue_CF = {Shirt = 11363650080, Pants = 11363655529},
+	Blue_CM = {Shirt = 11363650080, Pants = 11363655529},
+	Blue_GK = {Shirt = 70417429950855, Pants = 111345650832387},
+	Blue_LW = {Shirt = 11363650080, Pants = 11363655529},
+	Blue_RW = {Shirt = 11363650080, Pants = 11363655529},
+
+	
+	Red_CF  = {Shirt = 115884221019936, Pants = 12125393188},
+	Red_CM  = {Shirt = 115884221019936, Pants = 12125393188},
+	Red_GK  = {Shirt = 70417429950855, Pants = 111345650832387},
+	Red_LW  = {Shirt = 115884221019936, Pants = 12125393188},
+	Red_RW  = {Shirt = 115884221019936, Pants = 12125393188},
+}
+
+event.OnServerEvent:Connect(function(player, outfitName)
+
+	local outfit = outfits[outfitName]
+	if not outfit then
+		warn("Invalid outfit:", outfitName)
+		return
+	end
+
+	
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	
+	local description = humanoid:GetAppliedDescription()
+
+	
+	description.Shirt = outfit.Shirt
+	description.Pants = outfit.Pants
+
+	humanoid:ApplyDescription(description)
+end)
