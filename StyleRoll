@@ -1,0 +1,38 @@
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local RollEvent = RS:WaitForChild("RollStyleEvent")
+local StyleUpdateEvent = RS:WaitForChild("StyleUpdateEvent")
+
+local Styles = require(RS:WaitForChild("Styles"))
+
+local function rollStyle()
+	local pool = {}
+
+	for _, style in ipairs(Styles) do
+		for i = 1, style.Chance do
+			table.insert(pool, style)
+		end
+	end
+
+	return pool[math.random(#pool)]
+end
+
+RollEvent.OnServerEvent:Connect(function(player)
+	local spins = player:FindFirstChild("Spins")
+	if not spins or spins.Value < 1 then 
+		warn("[StyleRoll] Player " .. player.Name .. " attempted to roll without spins.")
+		return 
+	end
+	
+	spins.Value -= 1
+	
+	local style = rollStyle()
+	if not style then return end
+	
+	player:SetAttribute("Style", style.Name)
+	player:SetAttribute("KickPowerMult", style.KickPower)
+	player:SetAttribute("SlidePowerMult", style.SlidePower)
+
+	StyleUpdateEvent:FireClient(player, style)
+end)
