@@ -1,0 +1,14 @@
+local CollectionService = game:GetService("CollectionService")
+
+local balls = {
+	workspace:WaitForChild("Ball"),
+	workspace:WaitForChild("better ball"),
+	workspace:WaitForChild("SoccerBall")
+}
+
+for _, ball in balls do
+	if ball then
+		CollectionService:AddTag(ball, "SoccerBall")
+		print("[TagManager] Tagged " .. ball.Name .. " as SoccerBall")
+	end
+end
