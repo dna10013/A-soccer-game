@@ -1,0 +1,56 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BallJumpEvent = ReplicatedStorage:WaitForChild("BallJumpEvent")
+
+-- CONFIG
+local MAX_DISTANCE = 7
+local UP_FORCE = 85
+local FORWARD_FORCE = 60
+local PICKUP_DELAY = 0.7
+
+BallJumpEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character then return end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local ball
+	local closest = MAX_DISTANCE
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == "Ball" and not obj.Anchored then
+			local dist = (obj.Position - hrp.Position).Magnitude
+			if dist < closest then
+				closest = dist
+				ball = obj
+			end
+		end
+	end
+
+	if not ball then return end
+
+	local canFollow = ball:FindFirstChild("CanFollow")
+	if canFollow then
+		canFollow.Value = false
+	end
+	ball:SetAttribute("Detach", true)
+
+	task.delay(PICKUP_DELAY, function()
+		if canFollow then
+			canFollow.Value = true
+		end
+	end)
+
+	ball:SetNetworkOwner(nil)
+
+	local offset = ball.Position - hrp.Position
+	if hrp.CFrame.LookVector:Dot(offset.Unit) < 0.3 then
+		return
+	end
+
+	local impulse =
+		(hrp.CFrame.LookVector * FORWARD_FORCE)
+		+ Vector3.new(0, UP_FORCE, 0)
+
+	ball:ApplyImpulse(impulse * ball.AssemblyMass)
+end)
