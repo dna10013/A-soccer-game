@@ -1,0 +1,20 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local spawnEvent = ReplicatedStorage:WaitForChild("SpawnEvent")
+
+local spawnFolder = workspace:WaitForChild("SpawnPoints")
+
+spawnEvent.OnServerEvent:Connect(function(player, spawnName)
+	local spawnPart = spawnFolder:FindFirstChild(spawnName)
+	if not spawnPart then return end
+
+	local character = player.Character
+	if not character then return end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.CFrame = spawnPart.CFrame + Vector3.new(0, 3, 0)
+	end
+end)
+
+
+
