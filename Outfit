@@ -1,0 +1,22 @@
+local Players = game:GetService("Players")
+
+local SHIRT_ID = 97697042678315
+local PANTS_ID = 88516552204786
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid")
+
+		task.spawn(function()
+			local success, desc = pcall(function()
+				return Players:GetHumanoidDescriptionFromUserId(player.UserId)
+			end)
+			if not success or not desc then return end
+
+			desc.Shirt = SHIRT_ID
+			desc.Pants = PANTS_ID
+
+			humanoid:ApplyDescription(desc)
+		end)
+	end)
+end)
