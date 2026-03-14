@@ -1,0 +1,129 @@
+local RS = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+local ShootEvent = RS:WaitForChild("ShootEvent")
+
+-- CONFIG
+local BASE_POWER = 110
+local MAX_EXTRA_POWER = 220
+local MAX_KICK_DISTANCE = 9
+local MAX_CURVE = 200
+local COOLDOWN_TIME = 0.5
+
+-- Animation IDs
+local KICK_ANIMATION_ID = "rbxassetid://8669560098" -- Synmade's Soccer Kick
+
+local playerCooldowns = {}
+
+local function findClosestBall(root)
+	local closestBall
+	local closestDist = MAX_KICK_DISTANCE
+
+	for _, ball in ipairs(CollectionService:GetTagged("SoccerBall")) do
+		if ball:IsA("BasePart") and not ball.Anchored then
+			local dist = (ball.Position - root.Position).Magnitude
+			if dist < closestDist then
+				closestDist = dist
+				closestBall = ball
+			end
+		end
+	end
+
+	return closestBall
+end
+
+local function kickBall(ball, direction, power, curve)
+	ball:SetNetworkOwner(nil)
+
+	local mass = ball.AssemblyMass
+
+	local impulse = (direction + Vector3.new(0, 0.15, 0)).Unit * power * mass
+	ball:ApplyImpulse(impulse)
+
+	local sideSpin = Vector3.new(
+		direction.Z,
+		0,
+		-direction.X
+	) * curve * mass
+
+	ball:ApplyAngularImpulse(sideSpin)
+end
+
+ShootEvent.OnServerEvent:Connect(function(player, aimPos, chargeAlpha, curveInput)
+	local now = os.clock()
+	if playerCooldowns[player] and now - playerCooldowns[player] < COOLDOWN_TIME then return end
+	playerCooldowns[player] = now
+
+	if typeof(aimPos) ~= "Vector3" then return end
+	if typeof(chargeAlpha) ~= "number" then return end
+	if typeof(curveInput) ~= "number" then return end
+
+	chargeAlpha = math.clamp(chargeAlpha, 0, 1)
+	curveInput = math.clamp(curveInput, -1, 1)
+
+	local character = player.Character
+	if not character then return end
+
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local ball = findClosestBall(root)
+	if not ball then return end
+
+	local canFollow = ball:FindFirstChild("CanFollow")
+	if canFollow then
+		canFollow.Value = false
+	end
+	ball:SetAttribute("Detach", true)
+
+	task.delay(0.6, function()
+		if canFollow then
+			canFollow.Value = true
+		end
+	end)
+
+	local humanoid = character:FindFirstChild("Humanoid")
+	if humanoid then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		if not animator then
+			animator = Instance.new("Animator")
+			animator.Parent = humanoid
+		end
+
+		local animation = Instance.new("Animation")
+		animation.AnimationId = KICK_ANIMATION_ID
+
+		local track = animator:LoadAnimation(animation)
+		track.Priority = Enum.AnimationPriority.Action
+		track:Play()
+	end
+
+	-- Visual feedback delay to sync with kick
+	task.delay(0.15, function()
+		if not ball or not ball.Parent then return end
+
+		local lookVector = root.CFrame.LookVector
+		local rawDir = aimPos - ball.Position
+
+		if rawDir.Magnitude < 1 then
+			rawDir = lookVector
+		end
+
+		rawDir = rawDir.Unit
+		local forwardDot = lookVector:Dot(rawDir)
+
+		if forwardDot < 0.25 then
+			rawDir = lookVector
+		end
+
+		local direction = rawDir.Unit
+		local power = BASE_POWER + (MAX_EXTRA_POWER * chargeAlpha)
+		local curve = curveInput * MAX_CURVE
+
+		kickBall(ball, direction, power, curve)
+
+		local kickSound = ball:FindFirstChild("Kick")
+		if kickSound and kickSound:IsA("Sound") then
+			kickSound:Play()
+		end
+	end)
+end)
