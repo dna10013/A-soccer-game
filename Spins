@@ -1,0 +1,34 @@
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local SpinDataStore = DataStoreService:GetDataStore("SpinDataStore")
+
+local function onPlayerAdded(player)
+	local Spins = Instance.new("IntValue")
+	Spins.Name = "Spins"
+	Spins.Parent = player
+	local success, data = pcall(function()
+		return SpinDataStore:GetAsync(player.UserId)
+	end)
+	print("added")
+	if success and data then
+		Spins.Value = data
+	else
+		Spins.Value = 0
+	end
+end
+
+local function onPlayerRemoving(player)
+		local Spins = player:FindFirstChild("Spins")
+		if Spins then
+			local success, errorMessage = pcall(function()
+				SpinDataStore:SetAsync(player.UserId, Spins.Value)
+		end)
+		print("saved")
+			if not success then
+				warn("Failed to save spins for player " .. player.Name .. ": " .. errorMessage)
+			end
+		end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
